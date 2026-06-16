@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Workout Logger</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #0d0d11;
+    --surface: #17171f;
+    --surface2: #1f1f2a;
+    --accent: #e94560;
+    --text: #f0f0f0;
+    --muted: #666;
+    --muted2: #999;
+    --border: #2a2a38;
+    --green: #2ecc71;
+    --radius: 18px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── SCREENS ── */
+  .screen {
+    display: none;
+    min-height: 100vh;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 20px;
+    animation: fadeIn 0.25s ease;
+  }
+  .screen.active { display: flex; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ── START SCREEN ── */
+  .start-icon { font-size: 72px; margin-bottom: 24px; }
+  .start-title { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; text-align: center; }
+  .start-title span { color: var(--accent); }
+  .start-sub { color: var(--muted2); font-size: 15px; text-align: center; margin-bottom: 48px; }
+
+  /* ── QUESTION SCREENS ── */
+  .q-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .q-title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    text-align: center;
+    margin-bottom: 32px;
+    line-height: 1.2;
+  }
+
+  /* ── CHIP GRID (body parts) ── */
+  .chip-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    max-width: 360px;
+    margin-bottom: 24px;
+  }
+
+  .chip {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 16px 12px;
+    text-align: center;
+    transition: border-color 0.15s, background 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .chip .chip-icon { font-size: 24px; }
+  .chip:active, .chip.selected {
+    border-color: var(--accent);
+    background: rgba(233,69,96,0.12);
+    color: var(--accent);
+  }
+
+  /* ── BIG BUTTONS ── */
+  .btn {
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 18px 24px;
+    width: 100%;
+    max-width: 360px;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: 0.1px;
+  }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-secondary { background: var(--surface); border: 1.5px solid var(--border); color: var(--muted2); margin-top: 10px; }
+  .btn-ghost { background: none; border: none; color: var(--muted); font-size: 14px; margin-top: 16px; cursor: pointer; }
+  .btn-green { background: var(--green); color: white; }
+
+  /* ── TEXT INPUT ── */
+  .big-input {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 600;
+    padding: 18px 20px;
+    width: 100%;
+    max-width: 360px;
+    margin-bottom: 16px;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .big-input:focus { border-color: var(--accent); }
+  .big-input::placeholder { color: var(--muted); font-weight: 400; font-size: 16px; }
+
+  /* ── SET INPUT ── */
+  .set-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    width: 100%;
+    max-width: 360px;
+    margin-bottom: 20px;
+  }
+
+  .set-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+    text-align: center;
+  }
+
+  .set-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .set-field label {
+    display: block;
+    font-size: 11px;
+    color: var(--muted2);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+
+  .set-field input {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 20px;
+    font-weight: 700;
+    padding: 12px;
+    width: 100%;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .set-field input:focus { border-color: var(--accent); }
+  .set-field input::placeholder { color: var(--muted); font-size: 16px; font-weight: 400; }
+
+  /* ── PROGRESS DOTS ── */
+  .progress-dots {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 28px;
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.2s, transform 0.2s;
+  }
+  .dot.active { background: var(--accent); transform: scale(1.3); }
+  .dot.done { background: var(--green); }
+
+  /* ── SUMMARY ── */
+  .summary-list { width: 100%; max-width: 360px; margin-bottom: 24px; }
+
+  .summary-day {
+    margin-bottom: 4px;
+  }
+
+  .summary-date {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 10px 0 6px;
+  }
+
+  .summary-ex {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+
+  .summary-ex-name {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .summary-ex-cat {
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .summary-sets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .summary-set-pill {
+    background: var(--surface2);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 8px;
+    color: var(--muted2);
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--green);
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 14px 28px;
+    border-radius: 50px;
+    transition: transform 0.3s ease;
+    z-index: 999;
+    white-space: nowrap;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .toast.error { background: var(--accent); }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .spinner {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .back-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: none;
+    border: none;
+    color: var(--muted2);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px;
+  }
+
+  .sets-done-list {
+    width: 100%;
+    max-width: 360px;
+    margin-bottom: 16px;
+  }
+
+  .done-set-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .done-set-row:last-child { border-bottom: none; }
+  .done-set-label { color: var(--muted2); font-size: 12px; }
+  .done-set-val { font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ══ SCREEN 1: START ══ -->
+<div class="screen active" id="screen-start">
+  <div class="start-icon">🏋️</div>
+  <div class="start-title">Ready to<br><span>train?</span></div>
+  <div class="start-sub">Log your workout, sync to your sheet</div>
+  <button class="btn btn-primary" style="max-width:260px;" onclick="startWorkout()">Start Workout</button>
+</div>
+
+<!-- ══ SCREEN 2: BODY PART ══ -->
+<div class="screen" id="screen-bodypart" style="position:relative;">
+  <button class="back-btn" onclick="goTo('screen-start')">←</button>
+  <div class="q-eyebrow">Step 1</div>
+  <div class="q-title">What are you training today?</div>
+  <div class="chip-grid">
+    <div class="chip" onclick="selectBodyPart(this, 'Chest')"><span class="chip-icon">🫁</span>Chest</div>
+    <div class="chip" onclick="selectBodyPart(this, 'Back')"><span class="chip-icon">🔙</span>Back</div>
+    <div class="chip" onclick="selectBodyPart(this, 'Shoulders')"><span class="chip-icon">🦾</span>Shoulders</div>
+    <div class="chip" onclick="selectBodyPart(this, 'Legs')"><span class="chip-icon">🦵</span>Legs</div>
+    <div class="chip" onclick="selectBodyPart(this, 'Biceps')"><span class="chip-icon">💪</span>Biceps</div>
+    <div class="chip" onclick="selectBodyPart(this, 'Triceps')"><span class="chip-icon">💪</span>Triceps</div>
+    <div class="chip" onclick="selectBodyPart(this, 'Core')"><span class="chip-icon">🎯</span>Core</div>
+    <div class="chip" onclick="selectBodyPart(this, 'Cardio')"><span class="chip-icon">🏃</span>Cardio</div>
+  </div>
+  <button class="btn btn-primary" id="bodypart-next" onclick="goToExercise()" disabled style="opacity:0.4;max-width:360px;">Next →</button>
+</div>
+
+<!-- ══ SCREEN 3: EXERCISE NAME ══ -->
+<div class="screen" id="screen-exercise" style="position:relative;">
+  <button class="back-btn" onclick="goTo('screen-bodypart')">←</button>
+  <div class="q-eyebrow" id="ex-eyebrow">Exercise</div>
+  <div class="q-title" id="ex-title">What exercise?</div>
+  <input class="big-input" id="exercise-name" type="text" placeholder="e.g. Bench Press" autocomplete="off" list="ex-suggestions">
+  <datalist id="ex-suggestions"></datalist>
+  <button class="btn btn-primary" onclick="goToSets()">Next →</button>
+  <button class="btn-ghost" onclick="goTo('screen-bodypart')">← Change body part</button>
+</div>
+
+<!-- ══ SCREEN 4: SETS ══ -->
+<div class="screen" id="screen-sets" style="position:relative;">
+  <button class="back-btn" onclick="goTo('screen-exercise')">←</button>
+  <div class="q-eyebrow" id="set-eyebrow">Set 1</div>
+  <div class="q-title" id="set-title">How was Set 1?</div>
+
+  <div class="sets-done-list" id="sets-done-list"></div>
+
+  <div class="set-card">
+    <div class="set-label" id="set-card-label">Set 1</div>
+    <div class="set-row">
+      <div class="set-field">
+        <label>Reps</label>
+        <input type="number" id="input-reps" placeholder="8" min="1" inputmode="numeric">
+      </div>
+      <div class="set-field">
+        <label>Weight (kg)</label>
+        <input type="number" id="input-weight" placeholder="60" min="0" inputmode="decimal">
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" id="set-next-btn" onclick="addSet()">Add Set →</button>
+  <button class="btn btn-secondary" onclick="finishExercise()">Done with this exercise ✓</button>
+  <button class="btn-ghost" onclick="goTo('screen-exercise')">← Change exercise</button>
+</div>
+
+<!-- ══ SCREEN 5: AFTER EXERCISE ══ -->
+<div class="screen" id="screen-after" style="position:relative;">
+  <div class="start-icon" id="after-icon">✅</div>
+  <div class="q-title" id="after-title">Exercise logged!</div>
+  <div class="sets-done-list" id="after-summary"></div>
+  <button class="btn btn-primary" onclick="addAnotherExercise()">+ Add Another Exercise</button>
+  <button class="btn btn-secondary" onclick="addAnotherBodyPart()">+ Different Body Part</button>
+  <button class="btn btn-green" style="margin-top:10px;" onclick="goTo('screen-summary')">Finish Workout 🏁</button>
+</div>
+
+<!-- ══ SCREEN 6: SUMMARY + SAVE ══ -->
+<div class="screen" id="screen-summary" style="position:relative; justify-content:flex-start; padding-top:40px;">
+  <button class="back-btn" onclick="goTo('screen-after')">←</button>
+  <div class="q-eyebrow" style="margin-bottom:8px;">Workout Summary</div>
+  <div class="q-title" style="margin-bottom:20px; font-size:22px;" id="summary-date-title"></div>
+  <div class="summary-list" id="summary-list"></div>
+  <button class="btn btn-primary" id="save-btn" onclick="saveWorkout()">Save to Google Sheets 💾</button>
+  <button class="btn-ghost" onclick="addAnotherExercise()">+ Add more exercises</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw08IO-ziVy9cPhsbSQZYM3n04UF924t1fpU0QjY_wbbzbLjwvPfvuSmZ9-cVC9rH0/exec";
+
+const DEFAULT_EXERCISES = [
+  "Bench Press","Incline DB Press","Cable Fly",
+  "Pull-ups","Deadlift","Barbell Row","Lat Pulldown",
+  "Overhead Press","Lateral Raises","Face Pulls",
+  "Squat","Leg Press","Romanian Deadlift","Leg Curl",
+  "Bicep Curl","Hammer Curl",
+  "Tricep Pushdown","Skull Crushers",
+  "Plank","Crunches","Hanging Leg Raise"
+];
+
+function getSavedExercises() {
+  try {
+    const stored = localStorage.getItem('custom_exercises');
+    return stored ? JSON.parse(stored) : [];
+  } catch { return []; }
+}
+
+function saveExerciseToMemory(name) {
+  if (!name) return;
+  const normalized = name.trim();
+  const all = [...DEFAULT_EXERCISES, ...getSavedExercises()].map(e => e.toLowerCase());
+  if (all.includes(normalized.toLowerCase())) return; // already known
+  try {
+    const custom = getSavedExercises();
+    custom.push(normalized);
+    localStorage.setItem('custom_exercises', JSON.stringify(custom));
+    refreshDatalist();
+  } catch {}
+}
+
+function refreshDatalist() {
+  const dl = document.getElementById('ex-suggestions');
+  const all = [...DEFAULT_EXERCISES, ...getSavedExercises()];
+  dl.innerHTML = all.map(e => `<option value="${e}">`).join('');
+}
+
+// Init datalist on load
+document.addEventListener('DOMContentLoaded', refreshDatalist);
+
+let state = {
+  date: '',
+  bodyPart: '',
+  exercises: [],   // [{ category, name, sets: [{reps, weight}] }]
+  currentSets: [],
+};
+
+function goTo(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function startWorkout() {
+  const now = new Date();
+  state.date = now.toISOString().split('T')[0];
+  state.exercises = [];
+  goTo('screen-bodypart');
+}
+
+function selectBodyPart(el, part) {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  state.bodyPart = part;
+  const btn = document.getElementById('bodypart-next');
+  btn.disabled = false;
+  btn.style.opacity = '1';
+}
+
+function goToExercise() {
+  if (!state.bodyPart) return;
+  document.getElementById('ex-eyebrow').textContent = state.bodyPart;
+  document.getElementById('ex-title').textContent = `What ${state.bodyPart} exercise?`;
+  document.getElementById('exercise-name').value = '';
+  goTo('screen-exercise');
+}
+
+function goToSets() {
+  const name = document.getElementById('exercise-name').value.trim();
+  if (!name) { showToast('Enter an exercise name', true); return; }
+  saveExerciseToMemory(name);
+  state.currentSets = [];
+  updateSetScreen();
+  goTo('screen-sets');
+}
+
+function updateSetScreen() {
+  const setNum = state.currentSets.length + 1;
+  document.getElementById('set-eyebrow').textContent = `${document.getElementById('exercise-name').value.trim()} · ${state.bodyPart}`;
+  document.getElementById('set-title').textContent = `How was Set ${setNum}?`;
+  document.getElementById('set-card-label').textContent = `Set ${setNum}`;
+  document.getElementById('input-reps').value = '';
+  document.getElementById('input-weight').value = '';
+
+  // Show completed sets
+  const doneList = document.getElementById('sets-done-list');
+  if (state.currentSets.length === 0) {
+    doneList.innerHTML = '';
+    return;
+  }
+  doneList.innerHTML = state.currentSets.map((s, i) => `
+    <div class="done-set-row">
+      <span class="done-set-label">Set ${i + 1}</span>
+      <span class="done-set-val">${s.reps} reps × ${s.weight}kg</span>
+    </div>
+  `).join('');
+}
+
+function addSet() {
+  const reps = document.getElementById('input-reps').value.trim();
+  const weight = document.getElementById('input-weight').value.trim();
+  if (!reps) { showToast('Enter reps', true); return; }
+  state.currentSets.push({ reps, weight: weight || '0' });
+  updateSetScreen();
+  document.getElementById('input-reps').focus();
+}
+
+function finishExercise() {
+  if (state.currentSets.length === 0) { showToast('Log at least one set', true); return; }
+  const name = document.getElementById('exercise-name').value.trim();
+  state.exercises.push({
+    category: state.bodyPart,
+    name,
+    sets: [...state.currentSets]
+  });
+
+  // Show after screen
+  document.getElementById('after-title').textContent = `${name} logged!`;
+  const summary = document.getElementById('after-summary');
+  summary.innerHTML = state.currentSets.map((s, i) => `
+    <div class="done-set-row">
+      <span class="done-set-label">Set ${i + 1}</span>
+      <span class="done-set-val">${s.reps} reps × ${s.weight}kg</span>
+    </div>
+  `).join('');
+  goTo('screen-after');
+}
+
+function addAnotherExercise() {
+  document.getElementById('exercise-name').value = '';
+  document.getElementById('ex-eyebrow').textContent = state.bodyPart;
+  document.getElementById('ex-title').textContent = `What ${state.bodyPart} exercise?`;
+  goTo('screen-exercise');
+}
+
+function addAnotherBodyPart() {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  state.bodyPart = '';
+  const btn = document.getElementById('bodypart-next');
+  btn.disabled = true;
+  btn.style.opacity = '0.4';
+  goTo('screen-bodypart');
+}
+
+function goToSummary() {
+  renderSummary();
+  goTo('screen-summary');
+}
+
+function renderSummary() {
+  const fmt = new Date(state.date + 'T12:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' });
+  document.getElementById('summary-date-title').textContent = fmt;
+
+  const list = document.getElementById('summary-list');
+  list.innerHTML = state.exercises.map(ex => `
+    <div class="summary-ex">
+      <div class="summary-ex-cat">${ex.category}</div>
+      <div class="summary-ex-name">${ex.name}</div>
+      <div class="summary-sets">
+        ${ex.sets.map((s, i) => `<span class="summary-set-pill">Set ${i+1}: ${s.reps}×${s.weight}kg</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// Override goTo screen-summary to auto-render
+const _origGoTo = goTo;
+function goTo(screenId) {
+  if (screenId === 'screen-summary') renderSummary();
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+async function saveWorkout() {
+  if (state.exercises.length === 0) { showToast('No exercises logged', true); return; }
+
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Saving...';
+
+  const rows = [];
+  state.exercises.forEach((ex, idx) => {
+    const sets = ex.sets.map(s => `${s.reps}×${s.weight}kg`);
+    rows.push([
+      idx === 0 ? state.date : '',
+      ex.category,
+      ex.name,
+      sets[0] || '', sets[1] || '', sets[2] || '', sets[3] || '',
+      ''
+    ]);
+  });
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows })
+    });
+    showToast(`✓ Workout saved!`);
+    setTimeout(() => {
+      state = { date: '', bodyPart: '', exercises: [], currentSets: [] };
+      goTo('screen-start');
+    }, 1800);
+  } catch (err) {
+    showToast('Error — check connection', true);
+    btn.disabled = false;
+    btn.innerHTML = 'Save to Google Sheets 💾';
+  }
+}
+
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isError ? ' error' : '');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
