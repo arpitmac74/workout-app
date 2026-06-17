@@ -324,12 +324,22 @@
 </head>
 <body>
 
+<!-- ══ SCREEN 0: WHO ARE YOU ══ -->
+<div class="screen active" id="screen-name">
+  <div class="start-icon">👤</div>
+  <div class="start-title">Who's <span>training?</span></div>
+  <div class="start-sub">Enter your name to log your workout</div>
+  <input class="big-input" id="client-name" type="text" placeholder="Your name" autocomplete="off" autocapitalize="words" style="margin-bottom:16px;">
+  <button class="btn btn-primary" style="max-width:260px;" onclick="confirmName()">Let's Go 💪</button>
+</div>
+
 <!-- ══ SCREEN 1: START ══ -->
-<div class="screen active" id="screen-start">
+<div class="screen" id="screen-start">
   <div class="start-icon">🏋️</div>
-  <div class="start-title">Ready to<br><span>train?</span></div>
+  <div class="start-title" id="start-greeting">Ready to<br><span>train?</span></div>
   <div class="start-sub">Log your workout, sync to your sheet</div>
   <button class="btn btn-primary" style="max-width:260px;" onclick="startWorkout()">Start Workout</button>
+  <button class="btn-ghost" onclick="goTo('screen-name')">Not you? Switch name</button>
 </div>
 
 <!-- ══ SCREEN 2: BODY PART ══ -->
@@ -455,9 +465,23 @@ document.addEventListener('DOMContentLoaded', refreshDatalist);
 let state = {
   date: '',
   bodyPart: '',
-  exercises: [],   // [{ category, name, sets: [{reps, weight}] }]
+  clientName: '',
+  exercises: [],
   currentSets: [],
 };
+
+function confirmName() {
+  const name = document.getElementById('client-name').value.trim();
+  if (!name) { showToast('Please enter your name', true); return; }
+  state.clientName = name;
+  document.getElementById('start-greeting').innerHTML = `Hey ${name},<br><span>ready to train?</span>`;
+  goTo('screen-start');
+}
+
+// Allow pressing Enter on name input
+document.getElementById('client-name').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') confirmName();
+});
 
 function goTo(screenId) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -620,11 +644,11 @@ async function saveWorkout() {
       method: 'POST',
       mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rows })
+      body: JSON.stringify({ clientName: state.clientName, rows })
     });
     showToast(`✓ Workout saved!`);
     setTimeout(() => {
-      state = { date: '', bodyPart: '', exercises: [], currentSets: [] };
+      state = { date: '', bodyPart: '', clientName: state.clientName, exercises: [], currentSets: [] };
       goTo('screen-start');
     }, 1800);
   } catch (err) {
